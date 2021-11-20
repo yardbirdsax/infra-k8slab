@@ -1,0 +1,31 @@
+name: VPC Deployment
+on:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  check:
+    name: Check Terraform format and lint
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        folder:
+          - terraform/vpc/us-east-2
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Configure Terraform version
+        uses: dflook/terraform-version@v1
+        with:
+          path: ${{ matrix.folder }}
+      - name: Setup Terraform linter
+        uses: terraform-linters/setup-tflint@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run Terraform lint
+        run: tflint -f compact
+        working-directory: ${{ matrix.folder }}
+      - name: Terraform format check
+        uses: dflook/terraform-fmt-check@v1
+        with:
+          path: ${{ matrix.folder }}

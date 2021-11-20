@@ -28,7 +28,7 @@ jobs:
         with:
           path: ${{ matrix.folder }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: .github/actions/apply
+      - uses: ./.github/actions/apply
         if: ${{ inputs.for_real == 'apply' }}
         with:
           path: ${{ matrix.folder }}

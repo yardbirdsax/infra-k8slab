@@ -1,6 +1,8 @@
 name: VPC Deployment
 on:
   pull_request:
+    paths:
+      - "terraform/vpc/**"
   workflow_dispatch:
 jobs:
   check:

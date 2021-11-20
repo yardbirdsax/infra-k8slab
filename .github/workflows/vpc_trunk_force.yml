@@ -24,12 +24,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: ./.github/actions/pull_request
-        if: ${{ inputs.for_real == 'plan' }}
+        if: ${{ github.event.inputs.for_real == 'plan' }}
         with:
           path: ${{ matrix.folder }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
       - uses: ./.github/actions/apply
-        if: ${{ inputs.for_real == 'apply' }}
+        if: ${{ github.event.inputs.for_real == 'apply' }}
         with:
           path: ${{ matrix.folder }}
           auto_approve: true

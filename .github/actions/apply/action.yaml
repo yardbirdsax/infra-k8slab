@@ -1,0 +1,27 @@
+name: Apply Terraform
+description: "Applies Terraform from either a pull request or from a manual apply."
+inputs:
+  auto_approve:
+    description: "If set to 'true', the apply will happen even if not run in the context of a pull request."
+    default: "false"
+    required: false
+  path:
+    description: "The path at which the Terraform files reside."
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Assume AWS role
+      uses: aws-actions/configure-aws-credentials@master
+      with:
+        role-to-assume: arn:aws:iam::326154603814:role/GHA-yardbirdsax-infra-k8slab
+        aws-region: us-east-1
+    - name: Configure Terraform version
+      uses: dflook/terraform-version@v1
+      with:
+        path: ${{ inputs.path }}
+    - name: Apply Terraform
+      uses: dflook/terraform-apply@v1
+      with:
+        path: ${{ inputs.path }}
+        auto_approve: ${{ inputs.auto_approve == 'true' }}

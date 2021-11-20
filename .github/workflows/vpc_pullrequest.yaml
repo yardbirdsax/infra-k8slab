@@ -18,31 +18,7 @@ jobs:
         folder:
           - terraform/vpc/us-east-2
     steps:
-      - name: Assume AWS role
-        uses: aws-actions/configure-aws-credentials@master
-        with:
-          role-to-assume: arn:aws:iam::326154603814:role/GHA-yardbirdsax-infra-k8slab
-          aws-region: us-east-1
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Configure Terraform version
-        uses: dflook/terraform-version@v1
+      - uses: .github/actions/pull_request
         with:
           path: ${{ matrix.folder }}
-      - name: Setup Terraform linter
-        uses: terraform-linters/setup-tflint@v1
-        with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Run Terraform lint
-        run: tflint -f compact
-        working-directory: ${{ matrix.folder }}
-      - name: Terraform format check
-        uses: dflook/terraform-fmt-check@v1
-        with:
-          path: ${{ matrix.folder }}
-      - name: Generate Terraform plan
-        uses: dflook/terraform-plan@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          path: ${{ matrix.folder }}

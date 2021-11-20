@@ -18,6 +18,7 @@ jobs:
         folder:
           - terraform/vpc/us-east-2
     steps:
+      - uses: actions/checkout@v2
       - uses: ./.github/actions/pull_request
         with:
           path: ${{ matrix.folder }}

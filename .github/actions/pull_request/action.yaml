@@ -1,0 +1,39 @@
+name: Pull Request pre-flight checks
+description: Runs a series of pre-flight checks for pull requests across deployments.
+inputs:
+  path:
+    description: "The path at which the Terraform files exist."
+    required: true
+  github_token:
+    description: "The GitHub token to use for checking out the source code, acquiring the OIDC token, and commenting on the pull request."
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Assume AWS role
+      uses: aws-actions/configure-aws-credentials@master
+      with:
+        role-to-assume: arn:aws:iam::326154603814:role/GHA-yardbirdsax-infra-k8slab
+        aws-region: us-east-1
+    - name: Configure Terraform version
+      uses: dflook/terraform-version@v1
+      with:
+        path: ${{ inputs.path }}
+    - name: Setup Terraform linter
+      uses: terraform-linters/setup-tflint@v1
+      with:
+        github_token: ${{ inputs.github_token }}
+    - name: Run Terraform lint
+      shell: bash
+      run: tflint -f compact
+      working-directory: ${{ inputs.path }}
+    - name: Terraform format check
+      uses: dflook/terraform-fmt-check@v1
+      with:
+        path: ${{ inputs.path }}
+    - name: Generate Terraform plan
+      uses: dflook/terraform-plan@v1
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+      with:
+        path: ${{ inputs.path }}

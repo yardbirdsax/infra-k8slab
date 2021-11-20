@@ -1,4 +1,4 @@
-name: VPC Trunk Apply (force)
+name: VPC manual Terraform run
 on:
   workflow_dispatch:
     inputs:
@@ -8,7 +8,7 @@ on:
         default: "plan"
 jobs:
   apply:
-    name: Apply Terraform plan
+    name: Manual Terraform run for VPC
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     permissions:
@@ -23,23 +23,14 @@ jobs:
           - terraform/vpc/us-east-2
     steps:
       - uses: actions/checkout@v2
-      - name: Assume AWS role
-        uses: aws-actions/configure-aws-credentials@master
-        with:
-          role-to-assume: arn:aws:iam::326154603814:role/GHA-yardbirdsax-infra-k8slab
-          aws-region: us-east-1
-      - name: Configure Terraform version
-        uses: dflook/terraform-version@v1
-        with:
-          path: ${{ matrix.folder }}
-      - name: Plan Terraform
-        uses: dflook/terraform-plan@v1
+      - uses: ./.github/actions/pull_request
         if: ${{ github.event.inputs.for_real == 'plan' }}
         with:
           path: ${{ matrix.folder }}
-      - name: Apply Terraform
-        uses: dflook/terraform-apply@v1
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: ./.github/actions/apply
         if: ${{ github.event.inputs.for_real == 'apply' }}
         with:
           path: ${{ matrix.folder }}
           auto_approve: true
+

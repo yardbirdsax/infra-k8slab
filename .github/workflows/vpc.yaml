@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 jobs:
   check:
-    name: Check Terraform format and lint
+    name: Pull Request pre-flight checks
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
@@ -29,5 +29,14 @@ jobs:
         working-directory: ${{ matrix.folder }}
       - name: Terraform format check
         uses: dflook/terraform-fmt-check@v1
+        with:
+          path: ${{ matrix.folder }}
+      - name: Assume AWS role
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: arn:aws:iam::326154603814:role/GHA-yardbirdsax-infra-k8s
+          aws-region: us-east-2
+      - name: Generate Terraform plan
+        uses: dflook/terraform-plan@v1
         with:
           path: ${{ matrix.folder }}

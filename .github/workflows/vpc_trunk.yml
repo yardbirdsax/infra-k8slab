@@ -3,11 +3,17 @@ on:
   push:
     branches:
       - "trunk"
+    paths:
+      - "terraform/vpc/**"
 jobs:
   apply:
     name: Apply Terraform plan
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false

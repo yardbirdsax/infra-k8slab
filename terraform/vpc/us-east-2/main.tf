@@ -14,6 +14,7 @@ provider aws {
 
 module "vpc" {
   source = "terraform-aws-modules/vpc/aws"
+  version = "3.11.0"
 
   name = "k8slab"
   cidr = "10.0.1.0/24"

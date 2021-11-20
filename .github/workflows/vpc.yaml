@@ -39,12 +39,12 @@ jobs:
         uses: dflook/terraform-fmt-check@v1
         with:
           path: ${{ matrix.folder }}
-      - name: Assume AWS role
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          role-to-assume: arn:aws:iam::326154603814:role/GHA-yardbirdsax-infra-k8slab
-          role-session-name: ${{ matrix.folder }}
-          aws-region: us-east-1
+#      - name: Assume AWS role
+#        uses: aws-actions/configure-aws-credentials@v1
+#        with:
+#          role-to-assume: arn:aws:iam::326154603814:role/GHA-yardbirdsax-infra-k8slab
+#          role-session-name: ${{ matrix.folder }}
+#          aws-region: us-east-1
       - name: Generate Terraform plan
         uses: dflook/terraform-plan@v1
         with:

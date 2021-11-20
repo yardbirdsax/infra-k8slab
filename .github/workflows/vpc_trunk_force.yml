@@ -1,4 +1,4 @@
-name: VPC Trunk Apply (force)
+name: VPC manual Terraform run
 on:
   workflow_dispatch:
     inputs:
@@ -8,7 +8,7 @@ on:
         default: "plan"
 jobs:
   apply:
-    name: Apply Terraform plan
+    name: Manual Terraform run for VPC
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     permissions:

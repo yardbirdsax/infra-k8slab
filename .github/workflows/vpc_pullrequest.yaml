@@ -1,0 +1,48 @@
+name: VPC Deployment
+on:
+  pull_request:
+    paths:
+      - "terraform/vpc/**"
+  workflow_dispatch:
+jobs:
+  check:
+    name: Pull Request pre-flight checks
+    runs-on: ubuntu-20.04
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+    strategy:
+      fail-fast: false
+      matrix:
+        folder:
+          - terraform/vpc/us-east-2
+    steps:
+      - name: Assume AWS role
+        uses: aws-actions/configure-aws-credentials@master
+        with:
+          role-to-assume: arn:aws:iam::326154603814:role/GHA-yardbirdsax-infra-k8slab
+          aws-region: us-east-1
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Configure Terraform version
+        uses: dflook/terraform-version@v1
+        with:
+          path: ${{ matrix.folder }}
+      - name: Setup Terraform linter
+        uses: terraform-linters/setup-tflint@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run Terraform lint
+        run: tflint -f compact
+        working-directory: ${{ matrix.folder }}
+      - name: Terraform format check
+        uses: dflook/terraform-fmt-check@v1
+        with:
+          path: ${{ matrix.folder }}
+      - name: Generate Terraform plan
+        uses: dflook/terraform-plan@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          path: ${{ matrix.folder }}

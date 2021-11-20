@@ -22,7 +22,7 @@ jobs:
           - terraform/vpc/us-east-2
     steps:
       - uses: actions/checkout@v2
-      - uses: .github/actions/apply
+      - uses: ./.github/actions/apply
         with:
           path: ${{ matrix.folder }}
           auto_apply: "false"

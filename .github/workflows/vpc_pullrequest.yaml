@@ -18,7 +18,7 @@ jobs:
         folder:
           - terraform/vpc/us-east-2
     steps:
-      - uses: .github/actions/pull_request
+      - uses: ./.github/actions/pull_request
         with:
           path: ${{ matrix.folder }}
           github_token: ${{ secrets.GITHUB_TOKEN }}

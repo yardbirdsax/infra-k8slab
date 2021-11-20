@@ -23,7 +23,7 @@ jobs:
           - terraform/vpc/us-east-2
     steps:
       - uses: actions/checkout@v2
-      - uses: .github/actions/pull_request
+      - uses: ./.github/actions/pull_request
         if: ${{ inputs.for_real == 'plan' }}
         with:
           path: ${{ matrix.folder }}
@@ -33,4 +33,4 @@ jobs:
         with:
           path: ${{ matrix.folder }}
           auto_approve: true
-          
+

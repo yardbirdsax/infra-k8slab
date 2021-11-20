@@ -1,0 +1,45 @@
+name: VPC Trunk Apply (force)
+on:
+  workflow_dispatch:
+    inputs:
+      for_real:
+        description: "Should the workflow apply or just plan?"
+        required: true
+        default: "plan"
+jobs:
+  apply:
+    name: Apply Terraform plan
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        folder:
+          - terraform/vpc/us-east-2
+    steps:
+      - uses: actions/checkout@v2
+      - name: Assume AWS role
+        uses: aws-actions/configure-aws-credentials@master
+        with:
+          role-to-assume: arn:aws:iam::326154603814:role/GHA-yardbirdsax-infra-k8slab
+          aws-region: us-east-1
+      - name: Configure Terraform version
+        uses: dflook/terraform-version@v1
+        with:
+          path: ${{ matrix.folder }}
+      - name: Plan Terraform
+        uses: dflook/terraform-plan@v1
+        if: ${{ github.event.inputs.for_real == 'plan' }}
+        with:
+          path: ${{ matrix.folder }}
+      - name: Apply Terraform
+        uses: dflook/terraform-apply@v1
+        if: ${{ github.event.inputs.for_real == 'apply' }}
+        with:
+          path: ${{ matrix.folder }}
+          auto_approve: true

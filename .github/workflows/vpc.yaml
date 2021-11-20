@@ -41,5 +41,7 @@ jobs:
           path: ${{ matrix.folder }}
       - name: Generate Terraform plan
         uses: dflook/terraform-plan@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           path: ${{ matrix.folder }}

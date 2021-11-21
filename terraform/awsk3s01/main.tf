@@ -14,6 +14,7 @@ provider "aws" {
 
 locals {
   deployment_name = "awsk3s01"
+  repo_slug       = "yardbirdsax/infra-k8slab"
 }
 
 data "aws_vpc" "vpc" {
@@ -26,6 +27,10 @@ data "aws_vpc" "vpc" {
 resource "aws_security_group" "minecraft_bedrock" {
   name   = "minecraft"
   vpc_id = data.aws_vpc.vpc.id
+  tags = {
+    "repo" = local.repo_slug
+    "Name" = "minecraft"
+  }
 }
 
 resource "aws_security_group_rule" "minecraft_bedrock" {
@@ -37,16 +42,67 @@ resource "aws_security_group_rule" "minecraft_bedrock" {
   protocol          = "udp"
 }
 
-resource "aws_security_group" "awsk3s01" {
+resource "aws_security_group" "cluster" {
   name   = local.deployment_name
   vpc_id = data.aws_vpc.vpc.id
+  tags = {
+    "repo" = local.repo_slug
+    "Name" = local.deployment_name
+  }
 }
 
-resource "aws_security_group_rule" "awsk3s01_egress" {
+resource "aws_security_group_rule" "egress" {
   cidr_blocks       = ["0.0.0.0/0"]
   from_port         = 0
   to_port           = 65535
   type              = "egress"
   protocol          = "-1"
-  security_group_id = aws_security_group.awsk3s01.id
+  security_group_id = aws_security_group.cluster.id
+}
+
+resource "aws_iam_role" "role" {
+  name = local.deployment_name
+  assume_role_policy = jsonencode(
+    {
+      "Version" : "2012-10-17",
+      "Statement" : [
+        {
+          "Action" : "sts:AssumeRole",
+          "Principal" : {
+            "Service" : ["ec2.amazonaws.com"]
+          },
+          "Effect" : "Allow",
+          "Sid" : ""
+        }
+      ]
+    }
+  )
+  tags = {
+    "repo" = local.repo_slug
+  }
+}
+
+data "aws_iam_policy" "ssm" {
+  name = "AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_role_policy_attachment" "ssm" {
+  role       = aws_iam_role.role.name
+  policy_arn = data.aws_iam_policy.ssm.arn
+}
+
+module "k3s" {
+  source = "git@github.com:yardbirdsax/terraform-aws-k3s-on-ec2?ref=feature/selectable-ami"
+  providers = {
+    aws = aws
+  }
+
+  assign_public_ip = true
+  deployment_name  = local.deployment_name
+  instance_type    = "t4.micro"
+  security_group_ids = [
+    aws_security_group.cluster.id,
+    aws_security_group.minecraft_bedrock.id
+  ]
+
 }

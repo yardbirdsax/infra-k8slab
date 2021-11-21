@@ -99,7 +99,7 @@ module "k3s" {
 
   assign_public_ip = true
   deployment_name  = local.deployment_name
-  instance_type    = "t4.micro"
+  instance_type    = "t4.small"
   security_group_ids = [
     aws_security_group.cluster.id,
     aws_security_group.minecraft_bedrock.id

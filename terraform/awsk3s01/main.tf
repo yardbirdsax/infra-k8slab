@@ -92,7 +92,7 @@ resource "aws_iam_role_policy_attachment" "ssm" {
 }
 
 module "k3s" {
-  source = "github.com/yardbirdsax/terraform-k3s-on-ec2?ref=feature/selectable-ami"
+  source = "github.com/yardbirdsax/terraform-k3s-on-ec2?ref=65c117f47d9e4625b2c7f50340cee09ab13ed9fe"
   providers = {
     aws = aws
   }

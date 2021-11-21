@@ -112,6 +112,6 @@ module "k3s" {
     aws_security_group.cluster.id,
     aws_security_group.minecraft_bedrock.id
   ]
-  subnet_id = data.aws_subnets.ids[0]
+  subnet_id = data.aws_subnets.subnets.ids[0]
 
 }

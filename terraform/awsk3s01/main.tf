@@ -92,7 +92,7 @@ resource "aws_iam_role_policy_attachment" "ssm" {
 }
 
 module "k3s" {
-  source = "github.com/yardbirdsax/terraform-k3s-on-ec2?ref=65c117f47d9e4625b2c7f50340cee09ab13ed9fe"
+  source = "github.com/yardbirdsax/terraform-k3s-on-ec2?ref=b68ad28e4d2b8b9f245a57aed233ff28fc4d099f"
   providers = {
     aws = aws
   }

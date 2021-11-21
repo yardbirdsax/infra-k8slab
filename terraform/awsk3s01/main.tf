@@ -24,6 +24,13 @@ data "aws_vpc" "vpc" {
   }
 }
 
+data "aws_subnets" "subnets" {
+  filter {
+    name = "vpc-id"
+    values = [ data.aws_vpc.vpc.id ]
+  }
+}
+
 resource "aws_security_group" "minecraft_bedrock" {
   name   = "minecraft"
   vpc_id = data.aws_vpc.vpc.id
@@ -105,5 +112,6 @@ module "k3s" {
     aws_security_group.cluster.id,
     aws_security_group.minecraft_bedrock.id
   ]
+  subnet_id        = data.aws_subnets.ids[0]
 
 }

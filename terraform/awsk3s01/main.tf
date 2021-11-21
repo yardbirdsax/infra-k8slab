@@ -97,7 +97,7 @@ module "k3s" {
     aws = aws
   }
 
-  ami_id           = "ami-0c455f19afe3e6f60"
+  ami_id           = "ami-0149a3b1558828b26"
   assign_public_ip = true
   deployment_name  = local.deployment_name
   instance_type    = "t4.small"

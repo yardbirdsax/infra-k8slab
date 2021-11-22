@@ -107,6 +107,7 @@ module "k3s" {
   ami_id           = "ami-0149a3b1558828b26"
   assign_public_ip = true
   deployment_name  = local.deployment_name
+  iam_role_name    = aws_iam_role.role.name
   instance_type    = "t3.micro"
   security_group_ids = [
     aws_security_group.cluster.id,

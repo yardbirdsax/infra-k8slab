@@ -38,6 +38,7 @@ spec:
       ops: "869844ea-ff4c-47df-9275-54ebb5ed3cc2"
       cheats: true
       serverName: "Monty"
+      serviceType: LoadBalancer
     persistence:
       dataDir:
         enabled: true

@@ -108,7 +108,7 @@ module "k3s" {
   assign_public_ip = true
   deployment_name  = local.deployment_name
   iam_role_name    = aws_iam_role.role.name
-  instance_type    = "t3.small"
+  instance_type    = "t3.medium"
   security_group_ids = [
     aws_security_group.cluster.id,
     aws_security_group.minecraft_bedrock.id

@@ -34,8 +34,8 @@ spec:
       eula: "TRUE"
       version: "LATEST"
       gameMode: "creative"
-      whitelist: "000901F73A7038A0"
-      ops: "000901F73A7038A0"
+      whitelist: "2535436139378848"
+      ops: "2535436139378848"
       cheats: true
       serverName: "Monty"
       serviceType: LoadBalancer

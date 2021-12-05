@@ -22,7 +22,7 @@ spec:
   interval: 1m
   chart:
     spec:
-      chart: minecraft
+      chart: minecraft-bedrock
       version: '2.1.5'
       sourceRef:
         kind: HelmRepository

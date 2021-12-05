@@ -34,8 +34,8 @@ spec:
       eula: "TRUE"
       version: "LATEST"
       gameMode: "creative"
-      whitelist: "yardbirdsax,imacutekitten20"
-      ops: "yardbirdsax"
+      whitelist: "869844eaff4c47df927554ebb5ed3cc2"
+      ops: "869844eaff4c47df927554ebb5ed3cc2"
       cheats: true
       serverName: "Monty"
       serviceType: LoadBalancer

@@ -27,7 +27,7 @@ spec:
       sourceRef:
         kind: HelmRepository
         name: minecraft-community
-        namespace: minecraft
+        namespace: minecraft-bedrock
       interval: 1m
   values:
     minecraftServer:

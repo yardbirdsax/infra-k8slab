@@ -101,7 +101,7 @@ resource "aws_iam_role_policy_attachment" "ssm" {
 
 resource "aws_s3_bucket" "velero" {
   bucket = local.velero_name
-  acl = "PRIVATE"
+  acl = "private"
 }
 
 data "aws_iam_policy_document" "velero" {

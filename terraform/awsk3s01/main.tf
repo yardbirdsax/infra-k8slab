@@ -115,7 +115,9 @@ data "aws_iam_policy_document" "velero" {
       "ec2:CreateSnapshot",
       "ec2:DeleteSnapshot"
     ]
-    resources = "*"
+    resources = [
+      "*"
+    ]
   }
 
   statement {
@@ -134,7 +136,8 @@ data "aws_iam_policy_document" "velero" {
 }
 
 resource "aws_iam_policy" "velero" {
-  name = local.velero_name
+  name   = local.velero_name
+  policy = data.aws_iam_policy_document.velero.json
 }
 
 resource "aws_iam_user" "velero" {

@@ -101,7 +101,7 @@ resource "aws_iam_role_policy_attachment" "ssm" {
 
 resource "aws_s3_bucket" "velero" {
   bucket = local.velero_name
-  acl = "private"
+  acl    = "private"
 }
 
 data "aws_iam_policy_document" "velero" {
@@ -120,7 +120,7 @@ data "aws_iam_policy_document" "velero" {
 
   statement {
     effect = "Allow"
-    actions = [ 
+    actions = [
       "s3:GetObject",
       "s3:DeleteObject",
       "s3:PutObject",
@@ -138,11 +138,11 @@ resource "aws_iam_policy" "velero" {
 }
 
 resource "aws_iam_user" "velero" {
-  name = local.velero_name  
+  name = local.velero_name
 }
 
 resource "aws_iam_user_policy_attachment" "velero" {
-  user = aws_iam_user.velero.name
+  user       = aws_iam_user.velero.name
   policy_arn = aws_iam_policy.velero.arn
 }
 

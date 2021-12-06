@@ -15,6 +15,7 @@ provider "aws" {
 locals {
   deployment_name = "awsk3s01"
   repo_slug       = "yardbirdsax/infra-k8slab"
+  velero_name     = "${local.deployment_name}-velero"
 }
 
 data "aws_vpc" "vpc" {
@@ -96,6 +97,57 @@ data "aws_iam_policy" "ssm" {
 resource "aws_iam_role_policy_attachment" "ssm" {
   role       = aws_iam_role.role.name
   policy_arn = data.aws_iam_policy.ssm.arn
+}
+
+resource "aws_s3_bucket" "velero" {
+  bucket = local.velero_name
+  acl = "PRIVATE"
+}
+
+data "aws_iam_policy_document" "velero" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "ec2:DescribeVolumes",
+      "ec2:DescribeSnapshots",
+      "ec2:CreateTags",
+      "ec2:CreateVolume",
+      "ec2:CreateSnapshot",
+      "ec2:DeleteSnapshot"
+    ]
+    resources = "*"
+  }
+
+  statement {
+    effect = "Allow"
+    actions = [ 
+      "s3:GetObject",
+      "s3:DeleteObject",
+      "s3:PutObject",
+      "s3:AbortMultipartUpload",
+      "s3:ListMultipartUploadParts"
+    ]
+    resources = [
+      "${aws_s3_bucket.velero.arn}/*"
+    ]
+  }
+}
+
+resource "aws_iam_policy" "velero" {
+  name = local.velero_name
+}
+
+resource "aws_iam_user" "velero" {
+  name = local.velero_name  
+}
+
+resource "aws_iam_user_policy_attachment" "velero" {
+  user = aws_iam_user.velero.name
+  policy_arn = aws_iam_policy.velero.arn
+}
+
+resource "aws_iam_access_key" "velero" {
+  user = aws_iam_user.velero.name
 }
 
 module "k3s" {

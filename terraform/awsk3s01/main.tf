@@ -171,3 +171,16 @@ module "k3s" {
   subnet_id = data.aws_subnets.subnets.ids[0]
 
 }
+
+
+resource "aws_eip" "primary" {
+  vpc = true
+  tags = {
+    "repo" = "yardbirdsax/infra-k8s"
+  }
+}
+
+resource "aws_eip_association" "primary" {
+  allocation_id = aws_eip.primary.id
+  instance_id   = module.k3s.instance.id
+}

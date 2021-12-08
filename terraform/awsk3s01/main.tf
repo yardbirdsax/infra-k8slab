@@ -174,7 +174,7 @@ module "k3s" {
 
 
 resource "aws_eip" "primary" {
-  vpc = data.aws_vpc.vpc.id
+  vpc = true
   tags = {
     "repo" = "yardbirdsax/infra-k8s"
   }

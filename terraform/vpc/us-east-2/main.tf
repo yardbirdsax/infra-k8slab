@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     aws = {
-      version = "~>3"
+      version = "~>4"
       source  = "hashicorp/aws"
     }
   }
@@ -14,7 +14,7 @@ provider "aws" {
 
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
-  version = "3.11.0"
+  version = "3.14.2"
 
   name = "k8slab"
   cidr = "10.0.1.0/24"

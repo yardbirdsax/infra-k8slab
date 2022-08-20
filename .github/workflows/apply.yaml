@@ -18,13 +18,6 @@ jobs:
         id: parse-comment
         run: |
           echo ::set-output name=apply-dir::$(echo ${{ github.event.comment.body }} | cut -f3 -d" ")
-      - name: Create comment
-        id: create-comment
-        uses: peter-evans/create-or-update-comment@v2
-        with:
-          issue-number: ${{ github.event.issue.number }}
-          body: |
-            🚀 Beginning Terraform apply for ${{ steps.parse-comment.outputs.apply-dir }}...
       - uses: actions/checkout@v3
         with:
           ref: refs/pull/${{ github.event.issue.number }}/merge
@@ -36,17 +29,11 @@ jobs:
       - name: Apply Terraform for ${{ steps.parse-comment.outputs.apply-dir }}
         id: apply
         uses: dflook/terraform-apply@v1
-        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          TERRAFORM_PRE_RUN: |
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            ./aws/install
         with:
           path: ${{ steps.parse-comment.outputs.apply-dir }}
-      - name: Post apply results
-        uses: peter-evans/create-or-update-comment@v2
-        with:
-          issue-number: ${{ github.event.issue.number }}
-          comment-id: ${{ steps.create-comment.outputs.comment-id }}
-          edit-mode: "append"
-          body: |
-            ...
-            Result of apply: [${{ steps.apply.outcome }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})

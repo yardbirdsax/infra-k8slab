@@ -1,0 +1,49 @@
+name: Check for infrastructure drift
+on:
+  schedule:
+    - cron:  "0 8 * * *"
+  push:
+    branches:
+      - "trunk"
+    paths:
+      - "terraform/**"
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+jobs:
+  build_matrix:
+    name: Build matrix of directories with changes
+    runs-on: ubuntu-latest
+    outputs:
+      tf-dirs: ${{ steps.build-matrix.outputs.tf-dirs }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: build matrix
+        id: build-matrix
+        run: |
+          echo ::set-output name=tf-dirs::$(find ./terraform -maxdepth 2 -mindepth 2 -type d | docker run --rm -i jpmens/jo -ap)
+      - name: debug
+        run: echo ${{ fromJson(steps.build-matrix.outputs.tf-dirs) }}
+  check_drift:
+    runs-on: ubuntu-latest
+    name: Check for drift for directory ${{ matrix.directory }}
+    needs:
+      - "build_matrix"
+    strategy:
+      fail-fast: false
+      matrix:
+        directory: ${{ fromJson(needs.build_matrix.outputs.tf-dirs)}}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Assume AWS role
+        uses: aws-actions/configure-aws-credentials@master
+        with:
+          role-to-assume: arn:aws:iam::326154603814:role/GHA-yardbirdsax-infra-k8slab
+          aws-region: us-east-1
+      - name: Check for drift for ${{ matrix.directory }}
+        uses: dflook/terraform-check@v1
+        with:
+          path: ${{ matrix.directory }}

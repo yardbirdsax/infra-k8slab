@@ -19,7 +19,7 @@ module "vpc" {
   name = "k8slab"
   cidr = "10.0.1.0/24"
 
-  azs            = ["us-east-2a"]
+  azs            = ["us-east-2a", "us-east-2b"]
   public_subnets = ["10.0.1.0/27", "10.0.1.32/27"]
 
   enable_nat_gateway = false

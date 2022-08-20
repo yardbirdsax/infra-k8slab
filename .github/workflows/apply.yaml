@@ -37,6 +37,8 @@ jobs:
         id: apply
         uses: dflook/terraform-apply@v1
         continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         with:
           path: ${{ steps.parse-comment.outputs.apply-dir }}
       - name: Post apply results

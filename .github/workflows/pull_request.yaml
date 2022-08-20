@@ -1,0 +1,64 @@
+name: Validate pull request
+on:
+  pull_request:
+    paths:
+      - "terraform/**"
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+jobs:
+  build_matrix:
+    name: Build matrix of directories with changes
+    runs-on: ubuntu-latest
+    outputs:
+      changed-dirs: ${{ steps.build-matrix.outputs.changed-dirs }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: build matrix
+        id: build-matrix
+        run: |
+          echo ::set-output name=changed-dirs::$(git diff --name-only origin/${{ github.event.pull_request.base.ref }} -- 'terraform/**' | xargs dirname | sort | uniq | docker run --rm -i jpmens/jo -ap)
+      - name: debug
+        run: echo ${{ fromJson(steps.build-matrix.outputs.changed-dirs) }}
+  validate-changes:
+    name: Validate changes for ${{ matrix.directory }}
+    runs-on: ubuntu-latest
+    needs: 
+      - "build_matrix"
+    strategy:
+      fail-fast: false
+      matrix:
+        directory: ${{ fromJson(needs.build_matrix.outputs.changed-dirs) }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Assume AWS role
+        uses: aws-actions/configure-aws-credentials@master
+        with:
+          role-to-assume: arn:aws:iam::326154603814:role/GHA-yardbirdsax-infra-k8slab
+          aws-region: us-east-1
+      - name: Configure Terraform version
+        uses: dflook/terraform-version@v1
+        with:
+          path: ${{ matrix.directory }}
+      - name: Setup Terraform linter
+        uses: terraform-linters/setup-tflint@v1
+        with:
+          github_token: ${{ inputs.github_token }}
+      - name: Run Terraform lint
+        shell: bash
+        run: tflint -f compact
+        working-directory: ${{ matrix.directory }}
+      - name: Terraform format check
+        uses: dflook/terraform-fmt-check@v1
+        with:
+          path: ${{ matrix.directory }}
+      - name: Generate Terraform plan
+        uses: dflook/terraform-plan@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          path: ${{ matrix.directory }}
+          

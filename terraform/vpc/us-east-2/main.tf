@@ -20,7 +20,7 @@ module "vpc" {
   cidr = "10.0.1.0/24"
 
   azs            = ["us-east-2a"]
-  public_subnets = ["10.0.1.0/27"]
+  public_subnets = ["10.0.1.0/27", "10.0.0.32/27"]
 
   enable_nat_gateway = false
   enable_vpn_gateway = false

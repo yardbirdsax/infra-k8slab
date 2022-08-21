@@ -32,7 +32,7 @@ data "aws_subnets" "subnets" {
 
 locals {
   partition = data.aws_partition.current.partition
-  name      = "jefeks01"
+  name      = "jefeks01_us-east-2"
 }
 
 module "eks" {

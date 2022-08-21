@@ -98,7 +98,7 @@ module "eks" {
 }
 
 module "karpenter_irsa" {
-  count   = var.deploy_karpenter == true ? 1 : 0
+  count   = var.deploy_cluster == true ? 1 : 0
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
   version = "~> 4.21.1"
 
@@ -122,7 +122,7 @@ module "karpenter_irsa" {
 }
 
 resource "aws_iam_instance_profile" "karpenter" {
-  count = var.deploy_karpenter == true ? 1 : 0
+  count = var.deploy_cluster == true ? 1 : 0
   name  = "KarpenterNodeInstanceProfile-${local.name}"
   role  = module.eks[0].eks_managed_node_groups["karpenter"].iam_role_name
 }

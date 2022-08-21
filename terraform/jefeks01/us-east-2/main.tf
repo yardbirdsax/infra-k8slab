@@ -22,6 +22,8 @@ provider "aws" {
 
 data "aws_partition" "current" {}
 
+data "aws_caller_identity" "current" {}
+
 data "aws_vpc" "vpc" {
   filter {
     name   = "tag:Name"
@@ -84,6 +86,22 @@ module "eks" {
   tags = {
     "karpenter.sh/discovery" = local.name
   }
+
+  manage_aws_auth_configmap = true
+  aws_auth_users = [
+    {
+      userarn  = "arn:aws:sts::326154603814:assumed-role/AWSReservedSSO_AdministratorAccess_5a9dcadf48ca82ea/josh@feiermanfamily.com"
+      username = "administrators"
+      groups   = ["system:masters"]
+    }
+  ]
+  aws_auth_roles = [
+    {
+      rolearn  = data.aws_caller_identity.current.arn
+      username = "githubactions"
+      groups   = ["system:masters"]
+    }
+  ]
 }
 
 provider "helm" {

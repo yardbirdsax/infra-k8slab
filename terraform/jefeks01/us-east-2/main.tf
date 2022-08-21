@@ -56,7 +56,7 @@ locals {
 }
 
 module "eks" {
-  count   = 0
+  count   = var.deploy_cluster == true ? 1 : 0
   source  = "terraform-aws-modules/eks/aws"
   version = "18.28.0"
 
@@ -146,6 +146,7 @@ provider "kubectl" {
 }
 
 module "karpenter_irsa" {
+  count   = var.deploy_karpenter == true ? 1 : 0
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
   version = "~> 4.21.1"
 
@@ -169,11 +170,13 @@ module "karpenter_irsa" {
 }
 
 resource "aws_iam_instance_profile" "karpenter" {
-  name = "KarpenterNodeInstanceProfile-${local.name}"
-  role = module.eks[0].eks_managed_node_groups["karpenter"].iam_role_name
+  count = var.deploy_karpenter == true ? 1 : 0
+  name  = "KarpenterNodeInstanceProfile-${local.name}"
+  role  = module.eks[0].eks_managed_node_groups["karpenter"].iam_role_name
 }
 
 resource "helm_release" "karpenter" {
+  count            = var.deploy_karpenter == true ? 1 : 0
   namespace        = "karpenter"
   create_namespace = true
 
@@ -184,7 +187,7 @@ resource "helm_release" "karpenter" {
 
   set {
     name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
-    value = module.karpenter_irsa.iam_role_arn
+    value = module.karpenter_irsa[0].iam_role_arn
   }
 
   set {
@@ -199,11 +202,12 @@ resource "helm_release" "karpenter" {
 
   set {
     name  = "aws.defaultInstanceProfile"
-    value = aws_iam_instance_profile.karpenter.name
+    value = aws_iam_instance_profile.karpenter[0].name
   }
 }
 
 resource "kubectl_manifest" "karpenter_provisioner" {
+  count     = var.deploy_karpenter == true ? 1 : 0
   yaml_body = <<-YAML
   apiVersion: karpenter.sh/v1alpha5
   kind: Provisioner

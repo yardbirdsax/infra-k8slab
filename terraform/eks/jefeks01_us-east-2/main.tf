@@ -4,32 +4,12 @@ terraform {
       version = "~>4"
       source  = "hashicorp/aws"
     }
-    helm = {
-      source  = "hashicorp/helm"
-      version = ">= 2.4"
-    }
-    kubectl = {
-      source  = "gavinbunney/kubectl"
-      version = ">= 1.14"
-    }
   }
   required_version = "~>1"
 }
 
 provider "aws" {
   region = "us-east-2"
-}
-
-provider "kubernetes" {
-  host                   = module.eks[0].cluster_endpoint
-  cluster_ca_certificate = base64decode(module.eks[0].cluster_certificate_authority_data)
-
-  exec {
-    api_version = "client.authentication.k8s.io/v1alpha1"
-    command     = "aws"
-    # This requires the awscli to be installed locally where Terraform is executed
-    args = ["eks", "get-token", "--cluster-name", module.eks[0].cluster_id]
-  }
 }
 
 data "aws_partition" "current" {}
@@ -117,34 +97,6 @@ module "eks" {
   ]
 }
 
-provider "helm" {
-  kubernetes {
-    host                   = module.eks[0].cluster_endpoint
-    cluster_ca_certificate = base64decode(module.eks[0].cluster_certificate_authority_data)
-
-    exec {
-      api_version = "client.authentication.k8s.io/v1beta1"
-      command     = "aws"
-      # This requires the awscli to be installed locally where Terraform is executed
-      args = ["eks", "get-token", "--cluster-name", module.eks[0].cluster_id]
-    }
-  }
-}
-
-provider "kubectl" {
-  apply_retry_count      = 5
-  host                   = module.eks[0].cluster_endpoint
-  cluster_ca_certificate = base64decode(module.eks[0].cluster_certificate_authority_data)
-  load_config_file       = false
-
-  exec {
-    api_version = "client.authentication.k8s.io/v1beta1"
-    command     = "aws"
-    # This requires the awscli to be installed locally where Terraform is executed
-    args = ["eks", "get-token", "--cluster-name", module.eks[0].cluster_id]
-  }
-}
-
 module "karpenter_irsa" {
   count   = var.deploy_karpenter == true ? 1 : 0
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
@@ -173,65 +125,4 @@ resource "aws_iam_instance_profile" "karpenter" {
   count = var.deploy_karpenter == true ? 1 : 0
   name  = "KarpenterNodeInstanceProfile-${local.name}"
   role  = module.eks[0].eks_managed_node_groups["karpenter"].iam_role_name
-}
-
-resource "helm_release" "karpenter" {
-  count            = var.deploy_karpenter == true ? 1 : 0
-  namespace        = "karpenter"
-  create_namespace = true
-
-  name       = "karpenter"
-  repository = "https://charts.karpenter.sh"
-  chart      = "karpenter"
-  version    = "0.8.2"
-
-  set {
-    name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
-    value = module.karpenter_irsa[0].iam_role_arn
-  }
-
-  set {
-    name  = "clusterName"
-    value = module.eks[0].cluster_id
-  }
-
-  set {
-    name  = "clusterEndpoint"
-    value = module.eks[0].cluster_endpoint
-  }
-
-  set {
-    name  = "aws.defaultInstanceProfile"
-    value = aws_iam_instance_profile.karpenter[0].name
-  }
-}
-
-resource "kubectl_manifest" "karpenter_provisioner" {
-  count     = var.deploy_karpenter == true ? 1 : 0
-  yaml_body = <<-YAML
-  apiVersion: karpenter.sh/v1alpha5
-  kind: Provisioner
-  metadata:
-    name: default
-  spec:
-    requirements:
-      - key: karpenter.sh/capacity-type
-        operator: In
-        values: ["spot"]
-    limits:
-      resources:
-        cpu: 1000
-    provider:
-      subnetSelector:
-        karpenter.sh/discovery: ${local.name}
-      securityGroupSelector:
-        karpenter.sh/discovery: ${local.name}
-      tags:
-        karpenter.sh/discovery: ${local.name}
-    ttlSecondsAfterEmpty: 30
-  YAML
-
-  depends_on = [
-    helm_release.karpenter
-  ]
 }

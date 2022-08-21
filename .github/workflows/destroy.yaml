@@ -1,0 +1,35 @@
+name: Destroy Terraform
+on:
+  issue_comment:
+    types:
+      - "created"
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+  statuses: write
+jobs:
+  apply-changes:
+    name: Destroy
+    runs-on: ubuntu-latest
+    if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, 'terraform destroy') }}
+    steps:
+      - name: parse comment
+        id: parse-comment
+        run: |
+          echo ::set-output name=apply-dir::$(echo ${{ github.event.comment.body }} | cut -f3 -d" ")
+      - uses: actions/checkout@v3
+        with:
+          ref: refs/pull/${{ github.event.issue.number }}/merge
+      - name: Assume AWS role
+        uses: aws-actions/configure-aws-credentials@master
+        with:
+          role-to-assume: arn:aws:iam::326154603814:role/GHA-yardbirdsax-infra-k8slab
+          aws-region: us-east-1
+      - name: Destroy Terraform for ${{ steps.parse-comment.outputs.apply-dir }}
+        id: destroy
+        uses: dflook/terraform-destroy@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          path: ${{ steps.parse-comment.outputs.apply-dir }}

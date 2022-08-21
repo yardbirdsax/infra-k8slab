@@ -20,6 +20,18 @@ provider "aws" {
   region = "us-east-2"
 }
 
+provider "kubernetes" {
+  host                   = module.eks[0].cluster_endpoint
+  cluster_ca_certificate = base64decode(module.eks[0].cluster_certificate_authority_data)
+
+  exec {
+    api_version = "client.authentication.k8s.io/v1alpha1"
+    command     = "aws"
+    # This requires the awscli to be installed locally where Terraform is executed
+    args = ["eks", "get-token", "--cluster-name", module.eks[0].cluster_id]
+  }
+}
+
 data "aws_partition" "current" {}
 
 data "aws_caller_identity" "current" {}
@@ -87,6 +99,7 @@ module "eks" {
     "karpenter.sh/discovery" = local.name
   }
 
+  create_aws_auth_configmap = true
   manage_aws_auth_configmap = true
   aws_auth_users = [
     {

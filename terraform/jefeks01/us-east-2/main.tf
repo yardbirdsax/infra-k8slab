@@ -56,7 +56,7 @@ locals {
 }
 
 module "eks" {
-  count   = 1
+  count   = 0
   source  = "terraform-aws-modules/eks/aws"
   version = "18.28.0"
 

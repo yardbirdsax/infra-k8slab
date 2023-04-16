@@ -4,12 +4,28 @@ terraform {
       version = "~>4"
       source  = "hashicorp/aws"
     }
+    flux = {
+      source  = "fluxcd/flux"
+      version = "~>0.25"
+    }
   }
   required_version = "~>1"
 }
 
 provider "aws" {
   region = "us-east-2"
+}
+
+provider "kubernetes" {
+  host = module.eks[0].cluster_endpoint
+  cluster_ca_certificate = base64decode(module.eks[0].cluster_certificate_authority_data)
+  exec {
+    api_version = "client.authentication.k8s.io/v1"
+    command = "aws"
+    args = [
+      "eks", "get-token", "--cluster-name", module.eks[0].cluster_name
+    ]
+  }
 }
 
 data "aws_partition" "current" {}
@@ -23,10 +39,25 @@ data "aws_vpc" "vpc" {
   }
 }
 
-data "aws_subnets" "subnets" {
+data "aws_subnets" "public_subnets" {
   filter {
     name   = "vpc-id"
     values = [data.aws_vpc.vpc.id]
+  }
+  filter {
+    name   = "tag:role"
+    values = ["public"]
+  }
+}
+
+data "aws_subnets" "private_subnets" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.vpc.id]
+  }
+  filter {
+    name   = "tag:role"
+    values = ["private"]
   }
 }
 
@@ -38,40 +69,30 @@ locals {
 module "eks" {
   count   = var.deploy_cluster == true ? 1 : 0
   source  = "terraform-aws-modules/eks/aws"
-  version = "18.28.0"
+  version = "19.13.0"
 
   cluster_endpoint_public_access       = true
   cluster_endpoint_public_access_cidrs = ["0.0.0.0/0"]
   cluster_name                         = local.name
-  cluster_version                      = "1.22"
-
-  node_security_group_additional_rules = {
-    # Control plane invoke Karpenter webhook
-    ingress_karpenter_webhook_tcp = {
-      description                   = "Control plane invoke Karpenter webhook"
-      protocol                      = "tcp"
-      from_port                     = 8443
-      to_port                       = 8443
-      type                          = "ingress"
-      source_cluster_security_group = true
-    }
-  }
+  cluster_version                      = "1.26"
+  create_cluster_security_group        = false
+  create_node_security_group           = false
 
   vpc_id     = data.aws_vpc.vpc.id
-  subnet_ids = data.aws_subnets.subnets.ids
+  subnet_ids = data.aws_subnets.public_subnets.ids
 
-  eks_managed_node_groups = {
+  fargate_profiles = {
     karpenter = {
-      instance_types = ["t3.medium"]
-
-      min_size     = 1
-      max_size     = 2
-      desired_size = 1
-
-      iam_role_additional_policies = [
-        # Required by Karpenter
-        "arn:${local.partition}:iam::aws:policy/AmazonSSMManagedInstanceCore"
+      selectors = [
+        { namespace = "karpenter" }
       ]
+      subnet_ids = data.aws_subnets.private_subnets.ids
+    }
+    kube-system = {
+      selectors = [
+        { namespace = "kube-system" }
+      ]
+      subnet_ids = data.aws_subnets.private_subnets.ids
     }
   }
 
@@ -83,7 +104,7 @@ module "eks" {
   manage_aws_auth_configmap = true
   aws_auth_users = [
     {
-      userarn  = "arn:aws:sts::326154603814:assumed-role/AWSReservedSSO_AdministratorAccess_5a9dcadf48ca82ea/josh@feiermanfamily.com"
+      userarn  = "arn:aws:iam::326154603814:role/AWSReservedSSO_AdministratorAccess_5a9dcadf48ca82ea"
       username = "administrators"
       groups   = ["system:masters"]
     }
@@ -93,36 +114,30 @@ module "eks" {
       rolearn  = data.aws_caller_identity.current.arn
       username = "githubactions"
       groups   = ["system:masters"]
+    },
+    {
+      rolearn  = module.karpenter[0].role_arn
+      username = "system:node:{{EC2PrivateDNSName}}"
+      groups = [
+        "system:bootstrappers",
+        "system:nodes",
+      ]
     }
   ]
 }
 
-module "karpenter_irsa" {
+module "karpenter" {
   count   = var.deploy_cluster == true ? 1 : 0
-  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-  version = "~> 4.21.1"
+  source  = "terraform-aws-modules/eks/aws//modules/karpenter"
+  version = "19.13.0"
 
-  role_name                          = "karpenter-controller-${local.name}"
-  attach_karpenter_controller_policy = true
+  cluster_name = module.eks[0].cluster_name
 
-  karpenter_controller_cluster_id = module.eks[0].cluster_id
-  karpenter_controller_ssm_parameter_arns = [
-    "arn:${local.partition}:ssm:*:*:parameter/aws/service/*"
-  ]
-  karpenter_controller_node_iam_role_arns = [
-    module.eks[0].eks_managed_node_groups["karpenter"].iam_role_arn
-  ]
+  irsa_oidc_provider_arn          = module.eks[0].oidc_provider_arn
+  irsa_namespace_service_accounts = ["karpenter:karpenter"]
 
-  oidc_providers = {
-    ex = {
-      provider_arn               = module.eks[0].oidc_provider_arn
-      namespace_service_accounts = ["karpenter:karpenter"]
-    }
+  tags = {
+    Environment = "dev"
+    Terraform   = "true"
   }
-}
-
-resource "aws_iam_instance_profile" "karpenter" {
-  count = var.deploy_cluster == true ? 1 : 0
-  name  = "KarpenterNodeInstanceProfile-${local.name}"
-  role  = module.eks[0].eks_managed_node_groups["karpenter"].iam_role_name
 }

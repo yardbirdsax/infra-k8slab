@@ -8,6 +8,14 @@ terraform {
       source  = "fluxcd/flux"
       version = "~>0.25"
     }
+    github = {
+      source  = "integrations/github"
+      version = "~>5.22"
+    }
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "~>2.0"
+    }
   }
   required_version = "~>1"
 }
@@ -17,11 +25,11 @@ provider "aws" {
 }
 
 provider "kubernetes" {
-  host = module.eks[0].cluster_endpoint
+  host                   = module.eks[0].cluster_endpoint
   cluster_ca_certificate = base64decode(module.eks[0].cluster_certificate_authority_data)
   exec {
     api_version = "client.authentication.k8s.io/v1"
-    command = "aws"
+    command     = "aws"
     args = [
       "eks", "get-token", "--cluster-name", module.eks[0].cluster_name
     ]
@@ -81,6 +89,36 @@ module "eks" {
   vpc_id     = data.aws_vpc.vpc.id
   subnet_ids = data.aws_subnets.public_subnets.ids
 
+  cluster_addons = {
+    kube-proxy = {}
+    vpc-cni    = {}
+    coredns = {
+      configuration_values = jsonencode({
+        computeType = "Fargate"
+        # Ensure that we fully utilize the minimum amount of resources that are supplied by
+        # Fargate https://docs.aws.amazon.com/eks/latest/userguide/fargate-pod-configuration.html
+        # Fargate adds 256 MB to each pod's memory reservation for the required Kubernetes
+        # components (kubelet, kube-proxy, and containerd). Fargate rounds up to the following
+        # compute configuration that most closely matches the sum of vCPU and memory requests in
+        # order to ensure pods always have the resources that they need to run.
+        resources = {
+          limits = {
+            cpu = "0.25"
+            # We are targetting the smallest Task size of 512Mb, so we subtract 256Mb from the
+            # request/limit to ensure we can fit within that task
+            memory = "256M"
+          }
+          requests = {
+            cpu = "0.25"
+            # We are targetting the smallest Task size of 512Mb, so we subtract 256Mb from the
+            # request/limit to ensure we can fit within that task
+            memory = "256M"
+          }
+        }
+      })
+    }
+  }
+
   fargate_profiles = {
     karpenter = {
       selectors = [
@@ -91,6 +129,12 @@ module "eks" {
     kube-system = {
       selectors = [
         { namespace = "kube-system" }
+      ]
+      subnet_ids = data.aws_subnets.private_subnets.ids
+    }
+    flux-system = {
+      selectors = [
+        { namespace = "flux-system" }
       ]
       subnet_ids = data.aws_subnets.private_subnets.ids
     }
@@ -140,4 +184,49 @@ module "karpenter" {
     Environment = "dev"
     Terraform   = "true"
   }
+}
+
+data "external" "github_token" {
+  program = ["bash", "-c", "gh auth token | jq --raw-input '{token: .}'"]
+}
+
+provider "github" {
+  token = data.external.github_token.result.token
+  owner = "yardbirdsax"
+}
+
+resource "tls_private_key" "flux" {
+  algorithm   = "ECDSA"
+  ecdsa_curve = "P256"
+}
+
+resource "github_repository_deploy_key" "this" {
+  title      = "Flux"
+  repository = "infra-k8slab"
+  key        = tls_private_key.flux.public_key_openssh
+  read_only  = "false"
+}
+
+data "aws_eks_cluster_auth" "cluster" {
+  name = module.eks[0].cluster_name
+}
+
+provider "flux" {
+  kubernetes = {
+    host                   = module.eks[0].cluster_endpoint
+    cluster_ca_certificate = base64decode(module.eks[0].cluster_certificate_authority_data)
+    token                  = data.aws_eks_cluster_auth.cluster.token
+  }
+  git = {
+    url    = "ssh://git@github.com/yardbirdsax/infra-k8slab.git"
+    branch = "eks"
+    ssh = {
+      username    = "git"
+      private_key = tls_private_key.flux.private_key_pem
+    }
+  }
+}
+
+resource "flux_bootstrap_git" "flux" {
+  path = "clusters/${module.eks[0].cluster_name}"
 }

@@ -29,9 +29,11 @@ module "vpc" {
     "role" = "private"
   }
 
-  enable_dns_hostnames = true
-  enable_nat_gateway   = false
-  enable_vpn_gateway   = false
+  enable_dns_hostnames   = true
+  enable_nat_gateway     = false
+  single_nat_gateway     = true
+  one_nat_gateway_per_az = false
+  enable_vpn_gateway     = false
 
   tags = {
     "repo" = "yardbirdsax/infra-k8slab"
@@ -95,7 +97,7 @@ module "vpc_endpoints" {
       service_type        = "Gateway"
       subnet_ids          = module.vpc.private_subnets
       private_dns_enabled = true
-      route_table_ids = flatten([module.vpc.private_route_table_ids, module.vpc.public_route_table_ids])
+      route_table_ids     = flatten([module.vpc.private_route_table_ids, module.vpc.public_route_table_ids])
     },
     ecr_api = {
       service             = "ecr.api"
